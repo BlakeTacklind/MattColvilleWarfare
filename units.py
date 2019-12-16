@@ -234,7 +234,7 @@ class Unit(object):
 		return check
 
 	def canAttack(self):
-		if self.utype == "Cavalry" and self.army.battle.round > self.lastAttack + 1:
+		if self.isCavalry and self.army.battle.round < self.lastAttack + 1:
 			return False
 
 		return True
@@ -399,12 +399,12 @@ class Unit(object):
 
 		if not self.alive:
 			if not self.attemptRally():
-				if SHOULD_PRINT:
+				if SHOULD_PRINT():
 					print(self.shortName, "rooted")
 				self.army.maybeRefresh()
 				self.cleanEngagement()
 			else:
-				if SHOULD_PRINT:
+				if SHOULD_PRINT():
 					print(self.shortName, "Rallied")
 
 	@property

@@ -1,6 +1,9 @@
 
-SHOULD_PRINT = False
+value = True
+
+def SHOULD_PRINT():
+	return value
 
 def SetPrint():
-	SHOULD_PRINT = True
+	value = True
 

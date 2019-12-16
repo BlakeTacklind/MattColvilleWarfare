@@ -14,6 +14,7 @@ class Army(object):
 		self.chooser = chooser
 		self.units = units
 		for x in self.units: x.army = self
+		self.current_action = None
 
 	def has(self, utype):
 		return any((x.utype == utype and x.alive for x in self.units))
@@ -42,8 +43,10 @@ class Army(object):
 
 		target = self.chooser.chooseTarget(targets, battle)
 
-		if SHOULD_PRINT:
+		if SHOULD_PRINT():
 			print(unit.shortName, order, target)
+
+		self.current_action = unit.shortName, order, target
 
 		unit.order(order, target)
 
@@ -70,7 +73,7 @@ class Battle(object):
 			self.turn()
 
 	def turn(self):
-		if SHOULD_PRINT:
+		if SHOULD_PRINT():
 			print("New Turn\n")
 		self.turnNumber += 1
 		for army in self.armies:
@@ -105,7 +108,7 @@ def army_v_army():
 
 		battle.fight()
 
-		if SHOULD_PRINT:
+		if SHOULD_PRINT():
 			for i in battle.armies:
 				print(i)
 				print()
@@ -132,7 +135,7 @@ def army_test():
 
 	# battle.fight()
 
-	if SHOULD_PRINT:
+	if SHOULD_PRINT():
 		for i in battle.armies:
 			print(i)
 			print()
@@ -143,9 +146,9 @@ def army_v_army_2():
 	a = 0
 	b = 0
 	turns = 0
-	Iterations = 1000
+	Iterations = 1
 	for x in range(Iterations):
-	
+
 		u1 = Unit(6, "Orc", "Veteran", "Light", "Flying")
 		u2 = Unit(6, "Human", "Regular", "Medium", "Cavalry")
 		u3 = Unit(6, "Dwarf", "Seasoned", "Heavy", "Infantry")
@@ -156,8 +159,8 @@ def army_v_army_2():
 		u7 = Unit(6, "Elf", "Seasoned", "Light", "Archers")
 		u8 = Unit(6, "Gnome", "Veteran", "Medium", "Cavalry")
 
-		a1 = Army([u1, u2, u3, u4], 0)#, UserChoice())
-		a2 = Army([u5, u6, u7, u8], 0)#, UserChoice())
+		a1 = Army([u1, u2, u3, u4], 0, UserChoice())
+		a2 = Army([u5, u6, u7, u8], 0, UserChoice())
 
 		battle = Battle([a1, a2])
 
@@ -165,18 +168,18 @@ def army_v_army_2():
 
 		turns += battle.turnNumber
 
-		if SHOULD_PRINT:
+		if SHOULD_PRINT():
 			for i in battle.armies:
 				print(i)
 				print()
 
 		if a1.alive:
-			if SHOULD_PRINT:
+			if SHOULD_PRINT():
 				print(a1)
 			a += 1
 
 		if a2.alive:
-			if SHOULD_PRINT:
+			if SHOULD_PRINT():
 				print(a2)
 			b += 1
 
@@ -186,11 +189,11 @@ def army_v_army_2():
 
 def army_v_army_test():
 
-	u1 = Unit(12, "Human", "Regular", "Medium", "Cavalry")
+	u1 = Unit(4, "Human", "Regular", "Medium", "Cavalry")
 	u2 = Unit(12, "Dwarf", "Seasoned", "Heavy", "Infantry")
 
 	u3 = Unit(12, "Dwarf", "Seasoned", "Heavy", "Infantry")
-	u4 = Unit(12, "Gnome", "Veteran", "Medium", "Cavalry")
+	u4 = Unit(4, "Gnome", "Veteran", "Medium", "Cavalry")
 
 	a1 = Army([u1, u2], 0, UserChoice())
 	a2 = Army([u3, u4], 0, UserChoice())
@@ -199,7 +202,7 @@ def army_v_army_test():
 
 	battle.fight()
 
-	if SHOULD_PRINT:
+	if SHOULD_PRINT():
 		for i in battle.armies:
 			print(i)
 			print()
