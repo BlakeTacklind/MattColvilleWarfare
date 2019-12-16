@@ -1,18 +1,17 @@
 
 from dice import *
-
-DEBUG = False
+from printer import SHOULD_PRINT
 
 def attack(attacker, defender, isCharge=False):
 
 	if not attacker.undeadOvercome and defender.hasTrait("Undead"):
 		if (attacker.expirence == "Levies" or attacker.expirence == "Green" or attacker.expirence == "Regular"):
 			if not attacker.moraleCheck(15):
-				if DEBUG:
+				if SHOULD_PRINT:
 					print(attacker.shortName,"horrified")
 				return
 
-		if DEBUG:
+		if SHOULD_PRINT:
 			print(attacker.shortName,"overcame")
 		attacker.undeadOvercome = True
 
@@ -21,31 +20,34 @@ def attack(attacker, defender, isCharge=False):
 		attacker.savageAvailible = False
 		rollAtAdvantage = True
 
+	if isCharge:
+		rollAtAdvantage = True
+
 	rollAtDisadvantage = False
 	if attacker.utype == "Archers" and defender.utype == "Cavalry":
 		rollAtDisadvantage = True
 
 	if rollAtAdvantage and not rollAtDisadvantage:
-		if DEBUG:
+		if SHOULD_PRINT:
 			print("Advantage Roll")
 		r = rollAdvantage()
 	elif not rollAtAdvantage and rollAtDisadvantage:
-		if DEBUG:
+		if SHOULD_PRINT:
 			print("Disadvantage Roll")
 		r = rollDisadvantage()
 	else:
-		if DEBUG:
+		if SHOULD_PRINT:
 			print("Normal Roll")
 		r = roll()
 
-	if DEBUG:
+	if SHOULD_PRINT:
 		print(attacker.shortName,"rolled", r)
 	if r != 20 and r + attacker.attack < defender.defence:
-		if DEBUG:
+		if SHOULD_PRINT:
 			print(attacker.shortName, "miss")
 		return
 
-	if DEBUG:
+	if SHOULD_PRINT:
 		print("hit", defender.shortName)
 
 	if attacker.hasTrait("Rock Hurler"):
@@ -61,46 +63,48 @@ def attack(attacker, defender, isCharge=False):
 
 def powerCheck(attacker, defender, isCharge):
 	r = roll()
-	if DEBUG:
+	if SHOULD_PRINT:
 		print("power check", r)
 	if r + attacker.power < defender.toughness:
-		if DEBUG:
+		if SHOULD_PRINT:
 			print(attacker.shortName, "failed")
 		return
 
-	if DEBUG:
+	if SHOULD_PRINT:
 		print(defender.shortName, "casualty")
 
-	diminished = defender.diminished
+	damage = 1
+
 	if attacker.hasTrait("Brutal"):
-		defender.damaged(1)
+		damage += 1
 
 	if attacker.hasTrait("Martial") and attacker.health > defender.health:
-		if DEBUG:
+		if SHOULD_PRINT:
 			print(attacker.shortName, "triggered Martial")
-		defender.damaged(1)
+		damage += 1
 
 	if isCharge:
-		if DEBUG:
+		if SHOULD_PRINT:
 			print("Charge started Damage")
 		attacker.engages(defender)
-		defender.damaged(1)
-
-	defender.damaged(1)
+		damage += 1
 
 	if attacker.hasTrait("Horrify") and not defender.hasTrait("Eternal") and not defender.moraleCheck(15):
 		print(attacker.shortName,"Horrified")
 		defender.exhaust()
 
+
+	if defender.diminished:
+		if not defender.moraleCheck(15):
+			if SHOULD_PRINT:
+				print(defender.shortName, "moral casualty")
+			damage += 1
+
+	diminished = defender.diminished
+	defender.damaged(damage)
+
 	if not diminished and defender.diminished and attacker.hasTrait("Frenzy"):
-		if DEBUG:
+		if SHOULD_PRINT:
 			print(attacker.shortName, "triggered Frenzy")
 		attack(attacker, defender)
-
-	if diminished:
-		if not defender.moraleCheck(15):
-			if DEBUG:
-				print(defender.shortName, "damaged by moral")
-			defender.damaged(1)
-
 

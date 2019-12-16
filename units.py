@@ -1,6 +1,7 @@
 
 from dice import *
 from actions import attack
+from printer import SHOULD_PRINT
 
 flatten = lambda l: [item for sublist in l for item in sublist]
 
@@ -29,25 +30,25 @@ class Ancestry(StatMod):
 		return "\n\n".join(x+"\n"+TraitList[x].description for x in self.traits)
 
 AncestryList = {
-	"Bugbear" : Ancestry(+2, 0, 0, 0, +1, ["Martial"]),
-	"Dragonborn" : Ancestry(+2, +2, +1, +1, +1, ["Courageous"]),
-	"Dwarf" : Ancestry(+3, +1, +1, +1, +2, ["Stalwart"]),
-	"Elf" : Ancestry(+2, 0, 0, 0, +1, ["Eternal"]),
-	"Elf (Winged)" : Ancestry(+1, +1, 0, 0, +1, ["Eternal"]),
-	"Ghoul" : Ancestry(-1, 0, +2, +2, 0, ["Undead", "Horrify", "Ravenous"]),
-	"Gnoll" : Ancestry(+2, 0, 0, 0, +1, ["Frenzy"]),
-	"Gnome" : Ancestry(+1, -1, +1, -1, +1),
-	"Goblin" : Ancestry(-1, -1, +1, -1, 0),
-	"Hobgoblin" : Ancestry(+2, 0, 0, 0, +1, ["Bred for War", "Martial"]),
-	"Human" : Ancestry(+2, 0, 0, 0, +1, ["Courageous"]),
-	"Kobold" : Ancestry(-1, -1, +1, -1, -1),
-	"Lizardfolk" : Ancestry(+2, +1, -1, +1, +1, ["Amphibious"]),
-	"Ogre" : Ancestry(0, +2, 0, +2, +1, ["Brutal"]),
-	"Orc" : Ancestry(+2, +1, +1, +1, +2, ["Savage"]),
-	"Skeleton" : Ancestry(-2, -1, +1, +1, +1, ["Undead", "Mindless"]),
-	"Treant" : Ancestry(0, +2, 0, +2, 0, ["Siege Engine", "Twisting Roots", "Hurl Rocks"]),
-	"Troll" : Ancestry(0, +2, 0, +2, 0, ["Regenerate"]),
-	"Zombie" : Ancestry(-2, 0, +2, +2, +2, ["Undead", "Mindless"]),
+	"Bugbear" : Ancestry(2, 0, 0, 0, 1, ["Martial"]),
+	"Dragonborn" : Ancestry(2, 2, 1, 1, 1, ["Courageous"]),
+	"Dwarf" : Ancestry(3, 1, 1, 1, 2, ["Stalwart"]),
+	"Elf" : Ancestry(2, 0, 0, 0, 1, ["Eternal"]),
+	"Elf (Winged)" : Ancestry(1, 1, 0, 0, 1, ["Eternal"]),
+	"Ghoul" : Ancestry(-1, 0, 2, 2, 0, ["Undead", "Horrify", "Ravenous"]),
+	"Gnoll" : Ancestry(2, 0, 0, 0, 1, ["Frenzy"]),
+	"Gnome" : Ancestry(1, -1, 1, -1, 1),
+	"Goblin" : Ancestry(-1, -1, 1, -1, 0),
+	"Hobgoblin" : Ancestry(2, 0, 0, 0, 1, ["Bred for War", "Martial"]),
+	"Human" : Ancestry(2, 0, 0, 0, 1, ["Courageous"]),
+	"Kobold" : Ancestry(-1, -1, 1, -1, -1),
+	"Lizardfolk" : Ancestry(2, 1, -1, 1, 1, ["Amphibious"]),
+	"Ogre" : Ancestry(0, 2, 0, 2, 1, ["Brutal"]),
+	"Orc" : Ancestry(2, 1, 1, 1, 2, ["Savage"]),
+	"Skeleton" : Ancestry(-2, -1, 1, 1, 1, ["Undead", "Mindless"]),
+	"Treant" : Ancestry(0, 2, 0, 2, 0, ["Siege Engine", "Twisting Roots", "Hurl Rocks"]),
+	"Troll" : Ancestry(0, 2, 0, 2, 0, ["Regenerate"]),
+	"Zombie" : Ancestry(-2, 0, 2, 2, 2, ["Undead", "Mindless"]),
 }
 
 class Trait(object):
@@ -138,7 +139,7 @@ UnitSizeList = {
 
 def targetList(unit, army):
 	if unit.engaged:
-		return unit.engagedBy + ([self.engaging] if self.engaging else [])
+		return unit.engagedBy + ([unit.engaging] if unit.engaging else [])
 
 	if unit.utype == "Infantry" or unit.utype == "Levies":
 		if army.has("Levies"):
@@ -190,6 +191,7 @@ class Unit(object):
 
 	def exhaust(self):
 		self.fresh = False
+		self.army.maybeRefresh()
 
 	def canTarget(self, battle):
 		return flatten(targetList(self, i) for i in (filter(lambda x: x is not self.army, battle.armies)))
@@ -211,56 +213,105 @@ class Unit(object):
 		self.engagedBy = []
 		self.engaging = False
 		self.undeadOvercome = False
+		self.lastAttack = -2
+		self.rallied = False
 
 	@property
 	def engaged(self):
 		return self.engagedBy or self.engaging
 
 	def moraleCheck(self, DC):
-		check = self.morale + self.army.commander_bonus + roll() >= DC
-		# TODO CHOICE
 		if self.hasTrait("Mindless"):
 			return True
+
+		check = self.morale + self.army.commander_bonus + roll() >= DC
+
+		# TODO CHOICE
 		if not check and self.couragousAvailible:
 			self.couragousAvailible = False
 			return True
 
 		return check
 
+	def canAttack(self):
+		if self.utype == "Cavalry" and self.army.battle.round > self.lastAttack + 1:
+			return False
+
+		return True
+
+	@property
+	def isCavalry(self):
+		return self.utype == "Cavalry"
+
 	def getOrders(self, battle):
-		return (["Attack"] if self.canTarget(battle) else []) + ["None"] + (["Feed"] if self.canRavish(battle) else [])+ ((["Charge"] if not self.engaged else ["Disengage"]) if self.utype == "Cavalry" else [])
+
+		options = []
+
+		if self.canAttack():
+			options.append("Attack")
+
+		if self.canFeed():
+			options.append("Feed")
+
+		if self.isCavalry:
+			if not self.engaging:
+				options.append("Charge")
+			else:
+				options.append("Disengage")
+
+
+		if not options:
+			print("Somehow got no options")
+			exit()
+
+		return options
 
 	def getOrderTargets(self, order, battle):
 		if order == "Attack" or order == "Charge":
 			return self.canTarget(battle)
 
-		return None
+		return [None]
 
-	def canRavish(self, battle):
-		return self.hasTrait("Ravenous") and any(i.diminished for i in flatten((y.units for y in filter(lambda x: x is not self.army, battle.armies))))
+	def attemptRally(self):
+		self.rallied = True
+
+		if self.moraleCheck(15):
+			self.health = 1
+			return True
+
+		return False
+
+	def canFeed(self):
+		return self.hasTrait("Ravenous") and any(i.diminished for i in flatten((y.units for y in filter(lambda x: x is not self.army, self.army.battle.armies))))
 
 	def order(self, order, order_vars = None):
 		if order == "Attack":
-			self.attackUnit(order_vars)
-		elif order == "Feed":
-			if not self.hasTrait("Ravenous"):
-				print("bad order")
+			if not self.canAttack():
+				print("Bad Attack order")
 				exit()
 
-			#TODO safety that order_vars is correct type
-			if self.canRavish(order_vars):
+			self.lastAttack = self.army.battle.round
+			self.attackUnit(order_vars)
+
+		elif order == "Feed":
+			if self.hasTrait("Ravenous") and self.canFeed():
 				self.heal()
+			else:
+				print("Bad Feed Order")
+				exit()
+
 		elif order == "Sap":
 			if not self.hasTrait("Twisting Roots"):
-				print("bad order")
+				print("Bad Twisting Roots order")
 				exit()
 
 			#TODO safety that order_vars is correct type
 			if order_vars.utype == "Fortification":
 				#TODO sapping
-				pass
+				print("Not implented")
+				exit()
 		elif order == "Charge":
-			self.attackUnit(order_vars, True)
+			attack(self, order_vars, True)
 		elif order == "Disengage":
 			if self.moraleCheck(13):
 				self.disengages()
@@ -334,17 +385,27 @@ class Unit(object):
 			return self.named
 		return self.strType
 
-	def __str__(self):
+	def longName(self):
 		return self.strType + "\n"+self.statsBlock+"\n"+AncestryList[self.ancestry].strTraits()+ "\nHP "+str(self.health)
+
+	def __str__(self):
+		return self.shortName
 
 	def hasTrait(self, trait):
 		return trait in AncestryList[self.ancestry].traits
 
 	def damaged(self, amount):
-		self.health = self.health - amount
+		self.health -= amount
 
 		if not self.alive:
-			self.cleanEngagement()
+			if not self.attemptRally():
+				if SHOULD_PRINT:
+					print(self.shortName, "rooted")
+				self.army.maybeRefresh()
+				self.cleanEngagement()
+			else:
+				if SHOULD_PRINT:
+					print(self.shortName, "Rallied")
 
 	@property
 	def diminished(self):
