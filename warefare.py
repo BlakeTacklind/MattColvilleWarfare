@@ -4,7 +4,7 @@ from actions import attack
 from functools import reduce
 from Choosers import *
 
-from printer import SHOULD_PRINT
+from DEBUG import SHOULD_PRINT
 
 class Army(object):
 	"""docstring for Army"""

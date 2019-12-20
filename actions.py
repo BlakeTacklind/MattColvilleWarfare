@@ -1,6 +1,6 @@
 
 from dice import *
-from printer import SHOULD_PRINT
+from DEBUG import SHOULD_PRINT
 
 def attack(attacker, defender, isCharge=False):
 

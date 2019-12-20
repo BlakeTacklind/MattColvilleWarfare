@@ -1,7 +1,7 @@
 
 from dice import *
 from actions import attack
-from printer import SHOULD_PRINT
+from DEBUG import SHOULD_PRINT
 
 flatten = lambda l: [item for sublist in l for item in sublist]
 
@@ -100,7 +100,7 @@ class Equipment(StatMod):
 		super(Equipment, self).__init__(0, power, defence, 0, 0)
 
 EquipmentList = {
-	"Levies": Equipment(1, 1),
+	"Levies": Equipment(0, 0),
 	"Light": Equipment(1, 1),
 	"Medium": Equipment(2, 2),
 	"Heavy": Equipment(4, 4),

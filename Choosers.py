@@ -1,7 +1,7 @@
 from random import choice
 import msvcrt as m
 
-from printer import SetPrint
+from DEBUG import SetPrint
 
 class ChoiceMachine(object):
 	"""docstring for ChoiceMachine"""
